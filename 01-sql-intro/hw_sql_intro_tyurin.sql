@@ -245,6 +245,51 @@ ORDER BY responses_cnt DESC;
 -- Когда в результате мне нужно получить только те строчки, которые имеют совпадающие пары в обеих таблицах, которые мы соединяем, нужно использовать INNER JOIN
 -- Если в результате мне нужно получить все строчки основной таблицы, включая те, у которых нет связанных записей, я использую LEFT JOIN
 
+
+-- Доработка с ГринЭнерго
+SELECT v.vacancy_id, v.vacancy_name, a.area_name, v.salary_from, v.published_at, v.closed_at, e.is_accredited_it
+FROM vacancies v
+INNER JOIN employers e
+ON v.employer_id = e.employer_id
+INNER JOIN areas a
+ON v.area_id = a.area_id
+WHERE e.employer_name = 'ГринЭнерго'
+
+SELECT e.employer_name, e.is_accredited_it, a.area_name, v.salary_from, v.published_at::date as published, v.closed_at::date as closed, COUNT(r.response_id) as responses_cnt
+FROM vacancies v
+INNER JOIN employers e
+ON v.employer_id = e.employer_id
+INNER JOIN areas a
+ON v.area_id = a.area_id
+LEFT JOIN responses r
+ON v.vacancy_id = r.vacancy_id
+WHERE v.vacancy_name = 'Стажёр: разработчик'
+GROUP BY e.employer_name, e.is_accredited_it, a.area_name, v.salary_from, v.published_at, v.closed_at
+
+SELECT e.is_accredited_it, COUNT(DISTINCT v.vacancy_id) as vacancies_cnt, COUNT(r.response_id) as responses_cnt,
+       ROUND(COUNT(r.response_id)::numeric / nullif(COUNT(DISTINCT v.vacancy_id), 0), 1) as responses_per_vacancy
+FROM vacancies v
+INNER JOIN employers e
+ON v.employer_id = e.employer_id
+LEFT JOIN responses r
+ON v.vacancy_id = r.vacancy_id
+GROUP BY e.is_accredited_it;
+
+-- Чтобы более точно ответить на вопрос про компанию "ГринЭнерго" я решил реализвоать три sql запроса, которые показали более полную картину:
+-- 1. Первым SQL запросом я проверил какой тип вакансии.
+-- 2. Дальше я начал проверять похожие вакансии у других компаний
+-- 3. Проверил однин из параметров, который отличался у компаний - аккредитация
+
+-- Че в итоге получилось:
+-- Это стажировка «Стажёр: разработчик» в Казани, она была открыта почти месяц с 6 апреля по 4 мая и сейчас уже закрыта,
+-- то есть время на отклики было. Интерес к самой позиции есть: такая же стажировка у УралСофт в то же время
+-- собрала 27 откликов. Город тоже не является причиной: вакансии Казань Диджитал в Казани собрали 13–21 отклик.
+-- Отличия у ГринЭнерго другие: компания не IT-аккредитована, и зарплата в вакансии не указана.
+-- Неаккредитованные компании в среднем получают 4,8 отклика на вакансию против 14,3 у аккредитованных,
+-- а у второй такой же стажировки неаккредитованной компании СибирьТелеком тоже 0 откликов, хотя зарплата там указана.
+-- 
+-- Что можно предложить на основе данных: указать зарплату и сделать её чуть выше, чем у аккредитованных компаний, потому что у неаккредитованных откликов заметно меньше: 4,8 на вакансию против 14,3. При одинаковой зарплате 50 тысяч УралСофт получил 27 откликов, а СибирьТелеком — 0.
+
 -- ============================================================
 -- БЛОК Д. Функции и финальный кейс
 -- ============================================================
@@ -259,6 +304,27 @@ SELECT date_trunc('month', r.created_at)::date as month, COUNT(*) as responses_c
 FROM responses r
 GROUP BY 1
 ORDER BY 1;
+
+-- Как проверял последнюю дату
+SELECT max(created_at) 
+FROM responses;
+
+-- Как проверял статусы откликов в августе
+SELECT status, COUNT(*) as cnt
+FROM responses
+WHERE created_at >= '2026-08-01'
+GROUP BY status
+ORDER BY cnt DESC;
+
+-- Как проверял распределение приглашений по компаниям в июне
+SELECT e.employer_name, COUNT(*) as invited_cnt
+FROM responses r
+INNER JOIN vacancies v
+ON r.vacancy_id = v.vacancy_id
+INNER JOIN employers e
+ON v.employer_id = e.employer_id
+WHERE r.status = 'invited' AND date_trunc('month', r.created_at) = '2026-06-01'
+GROUP BY e.employer_name
 
 -- Вывод:
 -- По данным можно увидеть, что легче всего получить приглашение можно было в июне, там конверсия была максимальная - 19,5 %
@@ -279,6 +345,16 @@ LEFT JOIN responses r
 ON v.vacancy_id = r.vacancy_id
 GROUP BY v.professional_role
 ORDER BY vacancies_cnt DESC;
+
+-- Запрос связанный с  «Логистик Плюс» 
+SELECT e.employer_name, COUNT(*) as invited_cnt
+FROM responses r
+INNER JOIN vacancies v
+ON r.vacancy_id = v.vacancy_id
+INNER JOIN employers e
+ON v.employer_id = e.employer_id
+WHERE r.status = 'invited' AND v.professional_role = 'Тестировщик'
+GROUP BY e.employer_name
 
 -- Письменные ответы:
 -- 1. Совпадает ли направление с наибольшим числом вакансий с направлением
