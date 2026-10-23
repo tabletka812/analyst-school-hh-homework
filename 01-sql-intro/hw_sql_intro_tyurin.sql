@@ -253,7 +253,7 @@ INNER JOIN employers e
 ON v.employer_id = e.employer_id
 INNER JOIN areas a
 ON v.area_id = a.area_id
-WHERE e.employer_name = 'ГринЭнерго'
+WHERE e.employer_name = 'ГринЭнерго';
 
 SELECT e.employer_name, e.is_accredited_it, a.area_name, v.salary_from, v.published_at::date as published, v.closed_at::date as closed, COUNT(r.response_id) as responses_cnt
 FROM vacancies v
@@ -264,7 +264,7 @@ ON v.area_id = a.area_id
 LEFT JOIN responses r
 ON v.vacancy_id = r.vacancy_id
 WHERE v.vacancy_name = 'Стажёр: разработчик'
-GROUP BY e.employer_name, e.is_accredited_it, a.area_name, v.salary_from, v.published_at, v.closed_at
+GROUP BY e.employer_name, e.is_accredited_it, a.area_name, v.salary_from, v.published_at, v.closed_at;
 
 SELECT e.is_accredited_it, COUNT(DISTINCT v.vacancy_id) as vacancies_cnt, COUNT(r.response_id) as responses_cnt,
        ROUND(COUNT(r.response_id)::numeric / nullif(COUNT(DISTINCT v.vacancy_id), 0), 1) as responses_per_vacancy
@@ -275,12 +275,12 @@ LEFT JOIN responses r
 ON v.vacancy_id = r.vacancy_id
 GROUP BY e.is_accredited_it;
 
--- Чтобы более точно ответить на вопрос про компанию "ГринЭнерго" я решил реализвоать три sql запроса, которые показали более полную картину:
+-- Чтобы более точно ответить на вопрос про компанию "ГринЭнерго" я решил реализовать три sql запроса, которые показали более полную картину:
 -- 1. Первым SQL запросом я проверил какой тип вакансии.
 -- 2. Дальше я начал проверять похожие вакансии у других компаний
--- 3. Проверил однин из параметров, который отличался у компаний - аккредитация
+-- 3. Проверил один из параметров, который отличался у компаний - аккредитация
 
--- Че в итоге получилось:
+-- Что в итоге получилось:
 -- Это стажировка «Стажёр: разработчик» в Казани, она была открыта почти месяц с 6 апреля по 4 мая и сейчас уже закрыта,
 -- то есть время на отклики было. Интерес к самой позиции есть: такая же стажировка у УралСофт в то же время
 -- собрала 27 откликов. Город тоже не является причиной: вакансии Казань Диджитал в Казани собрали 13–21 отклик.
@@ -324,7 +324,7 @@ ON r.vacancy_id = v.vacancy_id
 INNER JOIN employers e
 ON v.employer_id = e.employer_id
 WHERE r.status = 'invited' AND date_trunc('month', r.created_at) = '2026-06-01'
-GROUP BY e.employer_name
+GROUP BY e.employer_name;
 
 -- Вывод:
 -- По данным можно увидеть, что легче всего получить приглашение можно было в июне, там конверсия была максимальная - 19,5 %
@@ -354,7 +354,7 @@ ON r.vacancy_id = v.vacancy_id
 INNER JOIN employers e
 ON v.employer_id = e.employer_id
 WHERE r.status = 'invited' AND v.professional_role = 'Тестировщик'
-GROUP BY e.employer_name
+GROUP BY e.employer_name;
 
 -- Письменные ответы:
 -- 1. Совпадает ли направление с наибольшим числом вакансий с направлением
